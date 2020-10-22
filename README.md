@@ -3,9 +3,7 @@
 
 2. Implement 2 sets of commands:
 
- ********************** menu ***********************
- * get  put  ls   cd   pwd   mkdir   rmdir   rm  *  // executed by server
- * lcat     lls  lcd  lpwd  lmkdir  lrmdir  lrm  *  // executed LOACLLY
- ***************************************************
+get  put  ls   cd   pwd   mkdir   rmdir   rm    // executed by server
+lcat     lls  lcd  lpwd  lmkdir  lrmdir  lrm    // executed LOACLLY
 
 3. EXTRA Credits: make the server MULTI-thread by pthreads
