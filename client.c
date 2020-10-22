@@ -47,25 +47,6 @@ int init()
     printf("4. connected to server OK\n");
 }
 
-void execute(char *cmd, char *pathname)
-{
-    int r;
-    char buf[MAX];
-    if(!strcmp(cmd, "exit"))
-	  exit(0);
-    else if(!strcmp(cmd, "mkdir"))
-      	  r = mkdir(pathname, 0755);
-    else if(!strcmp(cmd, "rmdir"))
-      	  r = rmdir(pathname);
-    else if(!strcmp(cmd, "rm"))
-    	  r = unlink(pathname);
-    else if(!strcmp(cmd, "cd"))
-    	  r = chdir(pathname);
-    else if(!strcmp(cmd, "pwd"))
-      	  getcwd(buf, MAX);
-      	  printf("%s\n", buf);
-}
-
 int main(int argc, char *argv[], char *env[]) 
 { 
     int  n, r;
@@ -96,24 +77,32 @@ int main(int argc, char *argv[], char *env[])
       	 printf("pathname= %s", pathname);
       printf("\n");
       
-      execute(cmd, pathname);
-      /*if(!strcmp(cmd, "exit"))
+      if(!strcmp(cmd, "exit"))
 	  exit(0);
-      else if(!strcmp(cmd, "mkdir"))
+      else if(!strcmp(cmd, "lmkdir"))
       	  r = mkdir(pathname, 0755);
-      else if(!strcmp(cmd, "rmdir"))
+      else if(!strcmp(cmd, "lrmdir"))
       	  r = rmdir(pathname);
-      else if(!strcmp(cmd, "pwd"))
+      else if(!strcmp(cmd, "lrm"))
+    	  r = unlink(pathname);
+      else if(!strcmp(cmd, "lcd"))
+    	  r = chdir(pathname);
+      else if(!strcmp(cmd, "lpwd"))
+      {
       	  getcwd(buf, MAX);
-      	  printf("%s\n", buf);*/
-	  
-      /*// Send ENTIRE line to server
-      n = write(sock, line, MAX);
-      printf("client: wrote n=%d bytes; line=(%s)\n", n, line);
+      	  printf("%s\n", buf);
+      }
+      else if(!strcmp(cmd, "lls"));
+      else
+      { 	    
+      	  // Send ENTIRE line to server
+          n = write(sock, line, MAX);
+          printf("client: wrote n=%d bytes; line=(%s)\n", n, line);
 
-      // Read a line from sock and show it
-      bzero(ans, MAX);
-      n = read(sock, ans, MAX);
-      printf("client: read  n=%d bytes; echo=(%s)\n",n, ans);*/
+          // Read a line from sock and show it
+          bzero(ans, MAX);
+          n = read(sock, ans, MAX);
+          printf("client: read  n=%d bytes; echo=(%s)\n",n, ans);
+      }
     }
 }
