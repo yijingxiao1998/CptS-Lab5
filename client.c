@@ -92,7 +92,21 @@ int main(int argc, char *argv[], char *env[])
       	  getcwd(buf, MAX);
       	  printf("%s\n", buf);
       }
-      else if(!strcmp(cmd, "lls"));
+      else if(!strcmp(cmd, "lls"))
+      {
+      	  DIR *dir;
+      	  struct dirent *file;
+      	  getcwd(buf, MAX);
+      	  
+      	  if(pathname == 0)
+      	  	dir = opendir(buf);
+      	  else
+      	  	dir = opendir(pathname);	
+      	  while((file = readdir(dir)) != 0)
+      	  	printf("%s  ", file->d_name);
+      	  closedir(dir);
+      	  printf("\n");	  	  	
+      }
       else
       { 	    
       	  // Send ENTIRE line to server
@@ -104,5 +118,10 @@ int main(int argc, char *argv[], char *env[])
           n = read(sock, ans, MAX);
           printf("client: read  n=%d bytes; echo=(%s)\n",n, ans);
       }
+      
+      if(pathname == 0)
+      	  printf("%s Done\n", cmd); 
+      else
+      	  printf("%s %s Done\n", cmd, pathname);
     }
 }
