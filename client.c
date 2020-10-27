@@ -94,6 +94,7 @@ int main(int argc, char *argv[], char *env[])
       }
       else if(!strcmp(cmd, "lls"))
       {
+      
       	  DIR *dir;
       	  struct dirent *file;
       	  getcwd(buf, MAX);
@@ -103,9 +104,29 @@ int main(int argc, char *argv[], char *env[])
       	  else
       	  	dir = opendir(pathname);	
       	  while((file = readdir(dir)) != 0)
+      	  {
       	  	printf("%s  ", file->d_name);
+      	  }
       	  closedir(dir);
       	  printf("\n");	  	  	
+      }
+      else if(!strcmp(cmd, "lcat"))
+      {
+      	  FILE *file;
+      	  if(pathname != 0)
+      	  {
+      	  	file = fopen(pathname, "r");
+      	  	while((r = fgetc(file)) != EOF)
+      	  		putchar(r);
+      	  }
+      	  else
+      	  {
+      	  	printf("please enter file name\n");
+      	  }
+      }
+      else if(!strcmp(cmd, "get"))
+      {
+      	  ;
       }
       else
       { 	    
