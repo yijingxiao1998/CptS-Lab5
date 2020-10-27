@@ -53,7 +53,8 @@ int main(int argc, char *argv[], char *env[])
     char line[MAX], ans[MAX];
     char *cmd;
     char *pathname;
-    char buf[MAX];
+    char buf[MAX], temp[MAX];
+    char c;
 
     init();
   
@@ -70,7 +71,8 @@ int main(int argc, char *argv[], char *env[])
       if (line[0]==0)                  // exit if NULL line
          exit(0);
       
-      cmd = strtok(line, " ");
+      strcpy(temp, line);
+      cmd = strtok(temp, " ");
       printf("cmd= %s  ", cmd);
       pathname = strtok(NULL, " ");
       if(pathname != 0)
@@ -116,8 +118,8 @@ int main(int argc, char *argv[], char *env[])
       	  if(pathname != 0)
       	  {
       	  	file = fopen(pathname, "r");
-      	  	while((r = fgetc(file)) != EOF)
-      	  		putchar(r);
+      	  	while((c = fgetc(file)) != EOF)
+      	  		putchar(c);
       	  }
       	  else
       	  {
@@ -128,16 +130,19 @@ int main(int argc, char *argv[], char *env[])
       {
       	  ;
       }
-      else
+      else if(!strcmp(cmd, "cd") || !strcmp(cmd, "ls") || !strcmp(cmd, "pwd") || !strcmp(cmd, "mkdir") || !strcmp(cmd, "rmdir") || !strcmp(cmd, "rm"))
       { 	    
       	  // Send ENTIRE line to server
           n = write(sock, line, MAX);
           printf("client: wrote n=%d bytes; line=(%s)\n", n, line);
 
           // Read a line from sock and show it
-          bzero(ans, MAX);
           n = read(sock, ans, MAX);
           printf("client: read  n=%d bytes; echo=(%s)\n",n, ans);
+      }
+      else
+      {
+      	  printf("invalid comment %s\n", line);
       }
       
       if(pathname == 0)
