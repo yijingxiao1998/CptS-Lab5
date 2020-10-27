@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #include <unistd.h>
 #include <netdb.h> 
@@ -50,10 +51,25 @@ int init()
         exit(0); 
     }
     printf("5. server at IP=%s port=%d\n", serverIP, serverPORT);
+    char cwdBuf[256];
+    int s = chroot("/");
+    if(s==0)
+    {
+      printf("6. Change root to: %s\n", getcwd(cwdBuf, MAX));
+    }
+    else
+    {
+      perror("chroot /");
+    }
+    
+    
 }
   
 int main() 
-{
+{   
+    // cmd to process: get put ls cd pwd mkdir rmdir rm
+    char *cmd, *pathname, *s;
+    char cwdBuf[256];
     int n, length;
     char line[MAX];
     
@@ -77,19 +93,106 @@ int main()
        while(1){
          printf("server ready for next request ....\n");
          n = read(client_sock, line, MAX);
+
          if (n==0){
            printf("server: client died, server loops\n");
            close(client_sock);
            break;
          }
+         else if(n == -1)
+         {
+            printf("server or client error. Exit server\n");
+            close(client_sock);
+            break;
+         }
          line[n]=0;
-         printf("server: read  n=%d bytes; line=[%s]\n", n, line);
+         printf("server: read  line=[%s]\n", line);
 
-         strcat(line, " ECHO");
+         // handle input line from client:
+         cmd = strtok(line, " ");
+         printf("cmd= %s  \n", cmd);
+         pathname = strtok(NULL, " ");
+         printf("pathname= %s\n", pathname);
+         // handle command
+         if(!strcmp(cmd, "get"))
+         {
+
+         }
+         else if(!strcmp(cmd, "put"))
+         {
+
+         }
+         else if(!strcmp(cmd, "ls"))
+         {
+            printf("server: cmd = %s\n", cmd);
+         }
+         else if(!strcmp(cmd, "cd"))
+         {
+            int r = chdir(pathname);
+            if (r != 0)
+            {
+               printf("errno=%d : %s\n", errno, strerror(errno));
+            }
+            s = getcwd(cwdBuf, 256);
+            n = write(client_sock, s, MAX);
+            printf("server: cmd = %s wrote  CWD=[%s]\n", cmd, s);
+         }
+         else if(!strcmp(cmd, "pwd"))
+         {
+            printf("Handling command: %s\n", cmd);
+            s = getcwd(cwdBuf, 256);
+            n = write(client_sock, s, MAX);
+            printf("server: cmd = %s wrote  CWD=[%s]\n", cmd, s);
+         }
+         else if(!strcmp(cmd, "mkdir"))
+         {
+            int r;
+            r = syscall(pathname, 0766);
+            if (r < 0)
+            {
+               printf("errno=%d : %s\n", errno, strerror(errno));
+            }
+            r = chdir(pathname); // cd into newdir
+            s = getcwd(cwdBuf, 256); // get CWD string into buf[ ]
+            n = write(client_sock, s, MAX);
+            printf("server: cmd = %s wrote  CWD=[%s]\n", cmd, s);
+         }
+         else if(!strcmp(cmd, "rmdir"))
+         {
+            int r = rmdir(pathname);
+            if(r != 0)
+            {
+               printf("errno=%d : %s\n", errno, strerror(errno));
+            }
+            s =malloc(256);
+            strcpy(s, "remove ");
+            strcat(s, pathname);
+            strcat(s, "\n");
+            n = write(client_sock, s, MAX);
+            s = getcwd(cwdBuf, 256);
+            printf("server: cmd = %s wrote  CWD=[%s]\n", cmd, s);
+         }
+         else if(!strcmp(cmd, "rm"))
+         {
+            int r = unlink(pathname);
+            if(r != 0)
+            {
+               printf("errno=%d : %s\n", errno, strerror(errno));
+            }
+            
+            s =malloc(256);
+            strcpy(s, "remove ");
+            strcat(s, pathname);
+            strcat(s, "\n");
+            n = write(client_sock, s, MAX);
+            s = getcwd(cwdBuf, 256);
+            printf("server: cmd = %s wrote  CWD=[%s]\n", cmd, s);
+         }
+         //strcat(line, " ECHO");
          // send the echo line to client 
-         n = write(client_sock, line, MAX);
+         // n = write(client_sock, line, MAX);
 
-         printf("server: wrote n=%d bytes; ECHO=[%s]\n", n, line);
+         // printf("server: wrote n=%d bytes; ECHO=[%s]\n", n, line);
        }
     }
 }
