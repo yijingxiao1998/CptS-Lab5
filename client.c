@@ -49,7 +49,7 @@ int init()
 
 int main(int argc, char *argv[], char *env[]) 
 { 
-    int  n, r;
+    int  n, r, i=0;
     char line[MAX], ans[MAX];
     char *cmd;
     char *pathname;
@@ -59,7 +59,8 @@ int main(int argc, char *argv[], char *env[])
     init();
   
     printf("********  processing loop ********\n");
-    while (1){
+    while (1)
+    {
       printf("********************** menu *********************\n");
       printf("* get  put  ls   cd   pwd   mkdir   rmdir   rm  *\n");
       printf("* lcat     lls  lcd  lpwd  lmkdir  lrmdir  lrm  *\n");
@@ -128,26 +129,55 @@ int main(int argc, char *argv[], char *env[])
       }
       else if(!strcmp(cmd, "get"))
       {
-      	  ;
+      	  FILE *file;
+      	  printf("Client get %s\n",pathname);
+      	  printf("(1): try to open %s for WRITE : filename=%s\n", pathname, pathname);
+
+      	  n = write(sock, line, MAX);
+      	  file = fopen(pathname, "a+"); // a+ means if file exites then open; or make a new file 
+      	  if(file)
+      	  {
+      	  	printf("open OK\n");
+      	  	while(1)
+      	  	{
+      	  		
+      	  		n = read(sock, ans, MAX);
+      	  		printf("n=%d", n);
+      	  		printf("ans=%s\n", ans);
+      	  		//fwrite(ans, 1, n, file);
+      	  		bzero(ans, 0);
+      	  		if(n<MAX)
+      	  			break;
+      	  	}
+      	  	printf("(2): send get %s to Server and receive reply :", pathname);
+      	  	fclose(file);
+      	  }
       }
       else if(!strcmp(cmd, "cd") || !strcmp(cmd, "ls") || !strcmp(cmd, "pwd") || !strcmp(cmd, "mkdir") || !strcmp(cmd, "rmdir") || !strcmp(cmd, "rm"))
       { 	    
       	  // Send ENTIRE line to server
           n = write(sock, line, MAX);
           printf("client: wrote n=%d bytes; line=(%s)\n", n, line);
-
+          
           // Read a line from sock and show it
-          n = read(sock, ans, MAX);
-          printf("client: read  n=%d bytes; echo=(%s)\n",n, ans);
+          /*n = read(sock, ans, MAX);
+          printf("client: read  n=%d bytes; echo=(%s)\n",n, ans);*/
+          for(;;) 
+          {
+		n = read(sock, ans, MAX);
+		printf("%s", ans);
+		if(n<=0)
+			break;
+          }
+          
       }
       else
       {
       	  printf("invalid comment %s\n", line);
       }
-      
-      if(pathname == 0)
-      	  printf("%s Done\n", cmd); 
-      else
-      	  printf("%s %s Done\n", cmd, pathname);
+      printf("%s Done\n", line); 
+      bzero(line, MAX);
+      bzero(ans, MAX);
     }
+    close(sock);
 }
