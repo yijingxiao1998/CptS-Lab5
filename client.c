@@ -21,6 +21,9 @@ struct sockaddr_in saddr;
 char *serverIP   = "127.0.0.1";
 int   serverPORT = 1234;
 int   sock;
+struct stat mystat, *sp;
+char *t1 = "xwrxwrxwr-------";
+char *t2 = "----------------";
 
 int init()
 {
@@ -45,6 +48,52 @@ int init()
         exit(0); 
     }
     printf("4. connected to server OK\n");
+}
+
+int is_file(char *fname)
+{
+	struct stat fstat, *sp;
+	int r, i;
+	char ftime[64], buf[BLK];
+	sp = &fstat;
+	if((r = lstat(fname, &fstat)) < 0)
+	{
+		printf("can't stat %s\n", fname);
+		return -1;
+		//exit(1);
+	}
+	if((sp->st_mode & 0xF000) == 0x8000)  // if(S_ISREG())
+		printf("%c", '-');
+	if((sp->st_mode & 0xF000) == 0x4000)  // if(S_ISDIR())
+		printf("%c", 'd');
+	if((sp->st_mode & 0xF000) == 0xA000)  // if(S_ISLINK())
+		printf("%c", 'l');
+	for(i = 8; i >= 0; i--)
+	{
+		if((sp->st_mode & (1<<i)))  // print r|w|x
+			printf("%c", t1[i]);
+		else
+			printf("%c", t2[i]);  // or print -
+	}
+	printf("%4lud ", sp->st_nlink);  // link count
+	printf("%4d ", sp->st_gid);    // gid
+	printf("%4d ", sp->st_uid);    // uid
+	printf("%8ld ", sp->st_size);   // file size
+	// print time
+	strcpy(ftime, ctime(&sp->st_ctime));  // print time in calendar
+	ftime[strlen(ftime)-1] = 0;  // kill \n at end
+	printf("%s  ", ftime);
+	// print name
+	printf("%s", basename(fname));  // print file basename
+	// print -> linkname if symbolic file
+	if((sp->st_mode & 0xF00) == 0xA000)
+	{
+		// use readlink() to read linkname
+		char linkname[BLK];
+		r = readlink(fname, linkname, BLK);
+		printf(" -> %s", linkname);  // print linked name
+	}
+	printf("\n");
 }
 
 int main(int argc, char *argv[], char *env[]) 
@@ -98,21 +147,45 @@ int main(int argc, char *argv[], char *env[])
       }
       else if(!strcmp(cmd, "lls"))
       {
-      
+      	  int r = 0;
       	  DIR *dir;
-      	  struct dirent *file;
-      	  getcwd(buf, MAX);
+      	  struct dirent *fileinfo;
+      	  struct stat mystat, *sp = &mystat;
+      	  char *filename, path[BLK], cwd[MAX];
+      	  filename = "./";  // default to CWD
       	  
-      	  if(pathname == 0)
-      	  	dir = opendir(buf);
-      	  else
-      	  	dir = opendir(pathname);	
-      	  while((file = readdir(dir)) != 0)
+      	  if(pathname)
+      	  	filename = pathname;
+      	  if(r = lstat(filename, sp) < 0)
+      	  	printf("no such file %s\n", filename);
+      	  strcpy(path, filename);
+      	  if(path[0] != '/')
       	  {
-      	  	printf("%s  ", file->d_name);
+      	  	// filename is relative: get CWD path
+      	  	getcwd(cwd, MAX);
+      	  	strcpy(path, cwd);
+      	  	strcat(path, "/");
+      	  	strcat(path, filename);
       	  }
-      	  closedir(dir);
-      	  printf("\n");	  	  	
+      	  //getcwd(cwd, MAX);
+      	  if(S_ISDIR(sp->st_mode))
+      	  {
+      	  	bzero(temp, MAX);
+      	  	dir = opendir(path);
+      	  	while((fileinfo = readdir(dir)) != 0)
+      	  	{
+      	  		strcpy(temp, path);
+      	  		strcat(temp, "/");
+      	  		strcat(temp, fileinfo->d_name);
+      	  		is_file(temp);
+      	  	}
+      	  	closedir(dir);
+      	  	printf("\n");
+      	  }
+      	  else
+      	  {
+      	  	is_file(path);
+      	  }	  	  	
       }
       else if(!strcmp(cmd, "lcat"))
       {
