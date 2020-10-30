@@ -50,11 +50,12 @@ int init()
 int main(int argc, char *argv[], char *env[]) 
 { 
     int  n, r, i=0;
-    char line[MAX], ans[MAX];
+    char line[MAX], ans[BLK];
     char *cmd;
     char *pathname;
     char buf[MAX], temp[MAX];
     char c;
+    char *rec1, *rec2;
 
     init();
   
@@ -129,47 +130,89 @@ int main(int argc, char *argv[], char *env[])
       }
       else if(!strcmp(cmd, "get"))
       {
+          int total = 0;
       	  FILE *file;
       	  printf("Client get %s\n",pathname);
       	  printf("(1): try to open %s for WRITE : filename=%s\n", pathname, pathname);
 
       	  n = write(sock, line, MAX);
-      	  file = fopen(pathname, "a+"); // a+ means if file exites then open; or make a new file 
+      	  file = fopen(pathname, "w");
       	  if(file)
       	  {
       	  	printf("open OK\n");
+      	  	n = read(sock, ans, MAX);
+      	  	rec1 = strtok(ans, " ");
+      	  	rec2 = strtok(NULL, " "); 
+      	  	printf("(2): send get %s to Server and receive reply = %s\n", pathname, rec1);
+      	  	printf("expecting %s bytes\n", rec2);
       	  	while(1)
       	  	{
-      	  		
-      	  		n = read(sock, ans, MAX);
+      	  		bzero(ans, MAX);
+      	  		n = read(sock, ans, BLK);
       	  		printf("n=%d", n);
-      	  		printf("ans=%s\n", ans);
-      	  		//fwrite(ans, 1, n, file);
-      	  		bzero(ans, 0);
-      	  		if(n<MAX)
+      	  		total += n;
+      	  		printf("total=%d\n", total);
+      	  		fwrite(ans, n, 1, file);
+      	  		if(n < BLK)
+      	  		{
+      	  			printf("received %d bytes\n", total);
       	  			break;
+      	  		}	
       	  	}
-      	  	printf("(2): send get %s to Server and receive reply :", pathname);
       	  	fclose(file);
       	  }
       }
-      else if(!strcmp(cmd, "cd") || !strcmp(cmd, "ls") || !strcmp(cmd, "pwd") || !strcmp(cmd, "mkdir") || !strcmp(cmd, "rmdir") || !strcmp(cmd, "rm"))
+      else if(!strcmp(cmd, "put"))
+      {
+          int total = 0;
+          struct stat statbuf;
+      	  FILE *file;
+      	  printf("Client put %s\n",pathname);
+
+      	  file = fopen(pathname, "r"); // a+ means if file exites then open; or make a new file 
+      	  if(file)
+      	  {
+      	  	bzero(ans, MAX);
+      	  	while(1)
+      	  	{
+      	  		n = fread(ans, 1, BLK, file);
+      	  		if(n<0)
+      	  			break;
+      	  		n = write(sock, ans, BLK);
+      	  		printf("n=%d  ", n);
+      	  		total += n;
+      	  		printf("total=%d\n", total);
+      	  	}
+      	  	printf("sent %d bytes\n", total);	
+      	  	fclose(file);
+      	  }
+      }
+      else if(!strcmp(cmd, "ls"))
+      {
+      	  // Send ENTIRE line to server
+          n = write(sock, line, MAX);
+          printf("client: wrote n=%d bytes; line=(%s)\n", n, line);
+          
+          // Read a line from sock and show it
+          while(1)
+          {
+          	bzero(ans, MAX);
+          	n = read(sock, ans, MAX);
+             	printf("%s", ans);
+          	if(!strcmp(ans, "END OF ls \n"))
+          		break;
+
+          }
+      }
+      else if(!strcmp(cmd, "cd") || !strcmp(cmd, "pwd") || !strcmp(cmd, "mkdir") || !strcmp(cmd, "rmdir") || !strcmp(cmd, "rm"))
       { 	    
       	  // Send ENTIRE line to server
           n = write(sock, line, MAX);
           printf("client: wrote n=%d bytes; line=(%s)\n", n, line);
           
           // Read a line from sock and show it
-          /*n = read(sock, ans, MAX);
-          printf("client: read  n=%d bytes; echo=(%s)\n",n, ans);*/
-          for(;;) 
-          {
-		n = read(sock, ans, MAX);
-		printf("%s", ans);
-		if(n<=0)
-			break;
-          }
-          
+          n = read(sock, ans, MAX);
+          printf("client: read  n=%d bytes; echo=(%s)\n",n, ans);
       }
       else
       {
@@ -178,6 +221,6 @@ int main(int argc, char *argv[], char *env[])
       printf("%s Done\n", line); 
       bzero(line, MAX);
       bzero(ans, MAX);
+      printf("\n");
     }
-    close(sock);
 }
