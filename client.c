@@ -256,7 +256,7 @@ int main(int argc, char *argv[], char *env[])
 			
       	  	bzero(ans, MAX);
 			n = write(sock, line, MAX);
-      	  	while(1)
+      	  	while(total < fileSize)
       	  	{
       	  		n = fread(ans, 1, BLK, file);
       	  		if(n<0)

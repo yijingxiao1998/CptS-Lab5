@@ -213,7 +213,7 @@ int main()
                write(client_sock, fileSizeMsg, MAX);
                bzero(fileContent, MAX);
 
-               while(1)
+               while(total < fileSize)
                {
                   n = fread(fileContent, 1, BLK, file);
                   if(n < 0)
