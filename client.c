@@ -226,7 +226,8 @@ int main(int argc, char *argv[], char *env[])
       	  		total += n;
       	  		printf("total=%d\n", total);
       	  		fwrite(ans, n, 1, file);
-      	  		if(n < BLK)
+      	  		//if(n < BLK)
+			if(strncmp(ans, "END OF", 6) == 0)
       	  		{
       	  			printf("received %d bytes\n", total);
       	  			break;
@@ -240,30 +241,27 @@ int main(int argc, char *argv[], char *env[])
           int total = 0;
           struct stat statbuf;
       	  FILE *file;
-		  struct stat statBuf;
-		  char fileSizeMsg[20];
+	  struct stat statBuf;
+	  char fileSizeMsg[20];
       	  printf("Client put %s\n",pathname);
-		  n = write(sock, line, MAX);
-      	  file = fopen(pathname, "r"); // a+ means if file exites then open; or make a new file 
+	  n = write(sock, line, MAX);
+      	  file = fopen(pathname, "r"); 
       	  if(file)
       	  {
-			printf("Successfully open %s and ready for read:\n", pathname);
-			stat(pathname, &statBuf);
-			int fileSize = statBuf.st_size;
-			printf("Ready to read %d byte from client\n", fileSize);
-			sprintf(fileSizeMsg, "OK %d", fileSize);
-			write(sock, fileSizeMsg, MAX);
+		printf("Successfully open %s and ready for read:\n", pathname);
+		stat(pathname, &statBuf);
+		int fileSize = statBuf.st_size;
+		printf("Ready to read %d byte from client\n", fileSize);
+		sprintf(fileSizeMsg, "OK %d", fileSize);
+		write(sock, fileSizeMsg, MAX);
 			
       	  	bzero(ans, MAX);
-			n = write(sock, line, MAX);
+		n = write(sock, line, MAX);
       	  	while(total < fileSize)
       	  	{
       	  		n = fread(ans, 1, BLK, file);
       	  		if(n<0)
-				{
-					break;
-				}
-      	  			
+				break;
       	  		n = write(sock, ans, BLK);
       	  		printf("n=%d  ", n);
       	  		total += n;
@@ -284,13 +282,10 @@ int main(int argc, char *argv[], char *env[])
           {
           	bzero(ans, MAX);
           	n = read(sock, ans, MAX);
-            printf("%s", ans);
+                printf("%s", ans);
           	//if(!strcmp(ans, "END OF ls \n"))
-          	if(strcmp(ans, "END OF ls") == 0)
-			{
-				printf("ls Done\n");
+          	if(strncmp(ans, "END OF ls", 9) == 0)
           		break;
-			}
           }
       }
       else if(!strcmp(cmd, "cd") || !strcmp(cmd, "pwd") || !strcmp(cmd, "mkdir") || !strcmp(cmd, "rmdir") || !strcmp(cmd, "rm"))
