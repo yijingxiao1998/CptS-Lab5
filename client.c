@@ -260,7 +260,10 @@ int main(int argc, char *argv[], char *env[])
       	  	{
       	  		n = fread(ans, 1, BLK, file);
       	  		if(n<0)
-      	  			break;
+				{
+					break;
+				}
+      	  			
       	  		n = write(sock, ans, BLK);
       	  		printf("n=%d  ", n);
       	  		total += n;
@@ -281,11 +284,13 @@ int main(int argc, char *argv[], char *env[])
           {
           	bzero(ans, MAX);
           	n = read(sock, ans, MAX);
-             	printf("%s", ans);
+            printf("%s", ans);
           	//if(!strcmp(ans, "END OF ls \n"))
-          	if(strncmp(ans, "END OF ls", 9) == 0)
+          	if(strcmp(ans, "END OF ls") == 0)
+			{
+				printf("ls Done\n");
           		break;
-
+			}
           }
       }
       else if(!strcmp(cmd, "cd") || !strcmp(cmd, "pwd") || !strcmp(cmd, "mkdir") || !strcmp(cmd, "rmdir") || !strcmp(cmd, "rm"))

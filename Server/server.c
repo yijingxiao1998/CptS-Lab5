@@ -168,7 +168,8 @@ int main()
        printf("-----------------------------------------------\n");
 
        // Processing loop
-       while(1){
+       while(1)
+       {
          printf("server ready for next request ....\n");
          n = read(client_sock, line, MAX);
 
@@ -211,6 +212,7 @@ int main()
                sprintf(fileSizeMsg, "OK %d", fileSize);
                write(client_sock, fileSizeMsg, MAX);
                bzero(fileContent, MAX);
+
                while(1)
                {
                   n = fread(fileContent, 1, BLK, file);
@@ -219,13 +221,14 @@ int main()
                      break;
                   }
                   n = write(client_sock, fileContent, BLK);
-                  printf("n = %d\n", n);
+                  printf("n = %d ", n);
                   total += n;
                   printf("total = %d\n", total);
                }
                printf("Sent %d bytes in total\n", total);
       	  	   fclose(file);
             }
+            write(client_sock, "END OF get", MAX);
             printf("server: cmd = %s\n", cmd);
             s = getcwd(cwdBuf, 256);
             printf("server: cmd = %s wrote  CWD=[%s]\n", cmd, s);
@@ -243,7 +246,7 @@ int main()
                n = read(client_sock, fileContent, MAX);
                rec1 = strtok(fileContent, " ");
                rec2 = strtok(NULL, " ");
-               printf("(2): send get %s to Client and receive file size reply = %s\n", pathname, rec1);
+               printf("(2): Send get %s to Client and receive file size reply = %s\n", pathname, rec1);
                printf("expecting %s bytes\n", rec2);
                while(1)
                {
@@ -268,9 +271,9 @@ int main()
          {
             int r;
             char path[1024];
-            char *lsList;
+            char *lsList = malloc(MAX);
             struct stat mystat, *sp = &mystat;
-            
+            char *endMessage = malloc(30);
             DIR *dir;
       	   struct dirent *file;
             
@@ -287,16 +290,15 @@ int main()
 
             n=write(client_sock, "Displaying file:\n", MAX);
             printf("Reading File:\n");
+
             while((file = readdir(dir)) != 0)
             {
                printf("lsFile: %s\n", file->d_name);
-               lsList = ls_file(file->d_name);
-               write(client_sock, lsList, MAX);
+               write(client_sock, ls_file(file->d_name), MAX);             
             }
             closedir(dir);
-            printf("\n");
-            strcat(s, "END OF ls");
-            n = write(client_sock, s, MAX);
+            strcpy(endMessage, "END OF ls");
+            write(client_sock, endMessage, MAX);
             printf("server: cmd = %s wrote  CWD=[%s]\n", cmd, getcwd(cwdBuf,MAX));
          }
          else if(!strcmp(cmd, "cd"))
@@ -305,8 +307,7 @@ int main()
             if (r != 0)
             {
                printf("errno=%d : %s\n", errno, strerror(errno));
-               strcpy(s, "CD failed\n");
-               n = write(client_sock, s, MAX);
+               n = write(client_sock, "CD failed\n", MAX);
                continue;
             }
             s = getcwd(cwdBuf, 256);
@@ -371,8 +372,9 @@ int main()
             s = getcwd(cwdBuf, 256);
             printf("server: cmd = %s wrote  CWD=[%s]\n", cmd, s);
          }
+         // bzero(line, MAX);
+         // bzero(s, 1024);
        }
-       bzero(line, MAX);
-       bzero(s, 1024);
+       
     }
 }
