@@ -24,7 +24,9 @@ char *serverIP = "127.0.0.1";      // hardcoded server IP address
 int serverPORT = 1234;             // hardcoded server port number
 
 struct sockaddr_in saddr, caddr;   // socket addr structs
-
+struct stat mystat, *sp;
+char *t1 = "xwrxwrxwr---------";
+char *t2 = "------------------";
 int init()
 {
     printf("1. create a socket\n");
@@ -51,27 +53,110 @@ int init()
         exit(0); 
     }
     printf("5. server at IP=%s port=%d\n", serverIP, serverPORT);
-    char cwdBuf[256];
-    int s = chroot("/");
-    if(s==0)
-    {
-      printf("6. Change root to: %s\n", getcwd(cwdBuf, MAX));
-    }
-    else
+    printf("6. Change root to: %s\n", getcwd(cwdBuf, MAX));
+    getcwd(cwdBuf, MAX);
+    int s = chroot(cwdBuf);
+    if(s!=0)
     {
       perror("chroot /");
     }
-    
-    
 }
-  
+
+int ls_file(char* filename)
+{
+   printf("Enter ls_file\n");
+   struct stat fstat, *sp;
+   int r,i;
+   char ftime[64], *message, linkBuf[256];
+   sp = &fstat;
+
+   if ( (r = lstat(filename, &fstat))<0)
+   {
+      printf("Can't stat %s\n", filename);
+      exit(1);
+   }
+
+   if((sp->st_mode & 0xF000) == 0x8000)
+   {
+      printf("%c", '-');
+      // strcat(message, "-");
+   }
+   if((sp->st_mode & 0xF000) == 0x4000)
+   {
+      printf("%c", 'd');
+      // strcat(message, "d");
+   }
+   if((sp->st_mode & 0xF000) == 0xA000)
+   {
+      printf("%c", 'l');
+      // strcat(message, "l");
+   }
+   for (i = 8; i >=0; i--)
+   {
+      if(sp->st_mode & (1 << i))
+      {
+         printf("%c", t1[i]);
+         // strcat(message, t1[i]);
+      }
+      else
+      {
+         printf("%c", t2[i]);
+         // strcat(message, t2[i]);
+      }
+   }
+   printf("%4d ", sp->st_nlink);
+   //strcat(lsList, sp->st_nlink);
+   printf("%4d ", sp->st_gid);
+   //strcat(lsList, sp->st_gid);
+   printf("%4d ", sp->st_uid);
+   //strcat(lsList, sp->st_uid);
+   printf("8d ", sp->st_size);
+   //strcat(lsList, sp->st_size);
+   // print time
+   strcpy(ftime, ctime(&sp->st_ctime)); // print time in calendar form
+   ftime[strlen(ftime)-1] = 0; // kill \n at end
+   printf(" %s ",ftime);
+   //strcat(lsList, " ");
+   //strcat(lsList, ftime);
+   //strcat(lsList, " ");
+   // print name
+   printf("%s ", basename(filename)); // print file basename
+   //strcat(lsList,basename(filename));
+   //strcat(lsList, " ");
+   // print -> linkname if symbolic file
+   if ((sp->st_mode & 0xF000)== 0xA000)
+   {
+      // use readlink() to read linkname
+      printf(" -> %s", readlink(filename, linkBuf, MAX)); // print linked name
+      //strcat(lsList, " -> ");
+      //strcat(lsList, readlink(filename, linkBuf, MAX));
+      //strcat(lsList, " ");
+   }
+   // strcat(message, "\n");
+}
+
+int ls_dir(char* pathname, char *lsList)
+{
+   printf("Enter ls_dir\n");
+   DIR* curDir = opendir(pathname);
+   struct dirent *dp;
+   if (curDir != NULL)
+   {
+      while((dp = readdir(curDir))!= NULL)
+      {
+         ls_file(dp->d_name);
+      }
+   }
+}
+
 int main() 
 {   
     // cmd to process: get put ls cd pwd mkdir rmdir rm
-    char *cmd, *pathname, *s;
-    char cwdBuf[256];
+    char *cmd, *pathname, *s = malloc(1024);
+    char cwdBuf[1024], fileContent[MAX];
     int n, length;
     char line[MAX];
+    char *rec1, *rec2;
     
     init();  
 
@@ -116,15 +201,110 @@ int main()
          // handle command
          if(!strcmp(cmd, "get"))
          {
-
+            int total = 0;
+            char fileBuf[4096];
+            FILE* file = open(pathname, "r");
+            printf("server: cmd = %s\n", cmd);
+            printf("(1): try to open %s for READ : filename=%s\n", pathname, pathname);
+            if(file)
+            {
+               printf("Successfully open %s and ready for read:\n", pathname);
+               n = read(client_sock, fileContent ,MAX);
+               rec1 = strtok(fileContent, " ");
+               rec2 = strtok(NULL, " ");
+               printf("(2): send get %s to Client and receive reply = %s\n", pathname, rec1);
+               printf("expecting %s bytes\n", rec2);
+               while(1)
+               {
+                  bzero(fileContent, MAX);
+                  n = read(client_sock, fileContent, BLK);
+                  printf("n=%d", n);
+                  total += n;
+                  printf("total=%d\n", total);
+                  fwrite(fileContent, n, 1, file);
+                  if(n < BLK)
+                  {
+                     printf("received %d bytes\n", total);
+                     break;
+                  }	
+      	  	   }
+      	  	   fclose(file);
+            }
+            printf("server: cmd = %s\n", cmd);
+            s = getcwd(cwdBuf, 256);
+            printf("server: cmd = %s wrote  CWD=[%s]\n", cmd, s);
          }
          else if(!strcmp(cmd, "put"))
          {
-
+            int total = 0;
+            char fileBuf[4096];
+            FILE* file = open(pathname, "w");
+            printf("server: cmd = %s\n", cmd);
+            printf("(1): try to open %s for WRITE : filename=%s\n", pathname, pathname);
+            
+            if(file)
+            {
+               printf("Successfully open %s and ready for write:\n", pathname);
+               n = read(client_sock, fileContent ,MAX);
+               rec1 = strtok(fileContent, " ");
+               rec2 = strtok(NULL, " ");
+               printf("(2): send get %s to Client and receive reply = %s\n", pathname, rec1);
+               printf("expecting %s bytes\n", rec2);
+               while(1)
+               {
+                  bzero(fileContent, MAX);
+                  n = read(client_sock, fileContent, BLK);
+                  printf("n=%d", n);
+                  total += n;
+                  printf("total=%d\n", total);
+                  fwrite(fileContent, n, 1, file);
+                  if(n < BLK)
+                  {
+                     printf("received %d bytes\n", total);
+                     break;
+                  }	
+      	  	   }
+      	  	   fclose(file);
+            }
+            s = getcwd(cwdBuf, 256);
+            printf("server: cmd = %s wrote  CWD=[%s]\n", cmd, s);
          }
          else if(!strcmp(cmd, "ls"))
          {
+            int r;
+            char path[1024];
+            char *lsList = malloc(1024);
+            struct stat mystat, *sp = &mystat;
+            
+            DIR *dir;
+      	   struct dirent *file;
+            
             printf("server: cmd = %s\n", cmd);
+
+            if(pathname == 0)
+            {
+               dir = opendir(getcwd(cwdBuf, MAX));
+            }
+            else
+            {
+               dir = opendir(pathname);	
+            }
+
+            strcpy(s, "Displaying file:\n");
+            n=write(client_sock, s, MAX);
+            strcpy(s, "\n   ");
+
+            while((file = readdir(dir)) != 0)
+            {
+               n=ls_file(file->d_name);
+               strcat(s, file->d_name);
+               strcat(s, "\n   ");
+               // printf("ls_file: %s\n", file->d_name);
+            }
+            closedir(dir);
+            printf("\n");
+            n = write(client_sock, s, MAX);
+            printf("server: cmd = %s wrote  CWD=[%s]\n", cmd, getcwd(cwdBuf,MAX));
          }
          else if(!strcmp(cmd, "cd"))
          {
@@ -132,6 +312,9 @@ int main()
             if (r != 0)
             {
                printf("errno=%d : %s\n", errno, strerror(errno));
+               strcpy(s, "CD failed\n");
+               n = write(client_sock, s, MAX);
+               continue;
             }
             s = getcwd(cwdBuf, 256);
             n = write(client_sock, s, MAX);
@@ -141,16 +324,20 @@ int main()
          {
             printf("Handling command: %s\n", cmd);
             s = getcwd(cwdBuf, 256);
+            printf("CWD:%s\n", s);
             n = write(client_sock, s, MAX);
             printf("server: cmd = %s wrote  CWD=[%s]\n", cmd, s);
          }
          else if(!strcmp(cmd, "mkdir"))
          {
             int r;
-            r = syscall(pathname, 0766);
+            r = mkdir(pathname, 0755);
             if (r < 0)
             {
                printf("errno=%d : %s\n", errno, strerror(errno));
+               strcpy(s, "Make new dir failed\n");
+               n = write(client_sock, s, MAX);
+               continue;
             }
             r = chdir(pathname); // cd into newdir
             s = getcwd(cwdBuf, 256); // get CWD string into buf[ ]
@@ -163,8 +350,11 @@ int main()
             if(r != 0)
             {
                printf("errno=%d : %s\n", errno, strerror(errno));
+               strcpy(s, "remove dir failed\n");
+               n = write(client_sock, s, MAX);
+               continue;
             }
-            s =malloc(256);
+            
             strcpy(s, "remove ");
             strcat(s, pathname);
             strcat(s, "\n");
@@ -188,11 +378,6 @@ int main()
             s = getcwd(cwdBuf, 256);
             printf("server: cmd = %s wrote  CWD=[%s]\n", cmd, s);
          }
-         //strcat(line, " ECHO");
-         // send the echo line to client 
-         // n = write(client_sock, line, MAX);
-
-         // printf("server: wrote n=%d bytes; ECHO=[%s]\n", n, line);
        }
     }
 }
