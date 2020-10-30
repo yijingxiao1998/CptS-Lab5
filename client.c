@@ -49,16 +49,19 @@ int init()
 
 int main(int argc, char *argv[], char *env[]) 
 { 
-    int  n, r;
-    char line[MAX], ans[MAX];
+    int  n, r, i=0;
+    char line[MAX], ans[BLK];
     char *cmd;
     char *pathname;
-    char buf[MAX];
+    char buf[MAX], temp[MAX];
+    char c;
+    char *rec1, *rec2;
 
     init();
   
     printf("********  processing loop ********\n");
-    while (1){
+    while (1)
+    {
       printf("********************** menu *********************\n");
       printf("* get  put  ls   cd   pwd   mkdir   rmdir   rm  *\n");
       printf("* lcat     lls  lcd  lpwd  lmkdir  lrmdir  lrm  *\n");
@@ -70,7 +73,8 @@ int main(int argc, char *argv[], char *env[])
       if (line[0]==0)                  // exit if NULL line
          exit(0);
       
-      cmd = strtok(line, " ");
+      strcpy(temp, line);
+      cmd = strtok(temp, " ");
       printf("cmd= %s  ", cmd);
       pathname = strtok(NULL, " ");
       if(pathname != 0)
@@ -94,6 +98,7 @@ int main(int argc, char *argv[], char *env[])
       }
       else if(!strcmp(cmd, "lls"))
       {
+      
       	  DIR *dir;
       	  struct dirent *file;
       	  getcwd(buf, MAX);
@@ -103,25 +108,119 @@ int main(int argc, char *argv[], char *env[])
       	  else
       	  	dir = opendir(pathname);	
       	  while((file = readdir(dir)) != 0)
+      	  {
       	  	printf("%s  ", file->d_name);
+      	  }
       	  closedir(dir);
       	  printf("\n");	  	  	
       }
-      else
+      else if(!strcmp(cmd, "lcat"))
+      {
+      	  FILE *file;
+      	  if(pathname != 0)
+      	  {
+      	  	file = fopen(pathname, "r");
+      	  	while((c = fgetc(file)) != EOF)
+      	  		putchar(c);
+      	  }
+      	  else
+      	  {
+      	  	printf("please enter file name\n");
+      	  }
+      }
+      else if(!strcmp(cmd, "get"))
+      {
+          int total = 0;
+      	  FILE *file;
+      	  printf("Client get %s\n",pathname);
+      	  printf("(1): try to open %s for WRITE : filename=%s\n", pathname, pathname);
+
+      	  n = write(sock, line, MAX);
+      	  file = fopen(pathname, "w");
+      	  if(file)
+      	  {
+      	  	printf("open OK\n");
+      	  	n = read(sock, ans, MAX);
+      	  	rec1 = strtok(ans, " ");
+      	  	rec2 = strtok(NULL, " "); 
+      	  	printf("(2): send get %s to Server and receive reply = %s\n", pathname, rec1);
+      	  	printf("expecting %s bytes\n", rec2);
+      	  	while(1)
+      	  	{
+      	  		bzero(ans, MAX);
+      	  		n = read(sock, ans, BLK);
+      	  		printf("n=%d", n);
+      	  		total += n;
+      	  		printf("total=%d\n", total);
+      	  		fwrite(ans, n, 1, file);
+      	  		if(n < BLK)
+      	  		{
+      	  			printf("received %d bytes\n", total);
+      	  			break;
+      	  		}	
+      	  	}
+      	  	fclose(file);
+      	  }
+      }
+      else if(!strcmp(cmd, "put"))
+      {
+          int total = 0;
+          struct stat statbuf;
+      	  FILE *file;
+      	  printf("Client put %s\n",pathname);
+
+      	  file = fopen(pathname, "r"); // a+ means if file exites then open; or make a new file 
+      	  if(file)
+      	  {
+      	  	bzero(ans, MAX);
+      	  	while(1)
+      	  	{
+      	  		n = fread(ans, 1, BLK, file);
+      	  		if(n<0)
+      	  			break;
+      	  		n = write(sock, ans, BLK);
+      	  		printf("n=%d  ", n);
+      	  		total += n;
+      	  		printf("total=%d\n", total);
+      	  	}
+      	  	printf("sent %d bytes\n", total);	
+      	  	fclose(file);
+      	  }
+      }
+      else if(!strcmp(cmd, "ls"))
+      {
+      	  // Send ENTIRE line to server
+          n = write(sock, line, MAX);
+          printf("client: wrote n=%d bytes; line=(%s)\n", n, line);
+          
+          // Read a line from sock and show it
+          while(1)
+          {
+          	bzero(ans, MAX);
+          	n = read(sock, ans, MAX);
+             	printf("%s", ans);
+          	if(!strcmp(ans, "END OF ls \n"))
+          		break;
+
+          }
+      }
+      else if(!strcmp(cmd, "cd") || !strcmp(cmd, "pwd") || !strcmp(cmd, "mkdir") || !strcmp(cmd, "rmdir") || !strcmp(cmd, "rm"))
       { 	    
       	  // Send ENTIRE line to server
           n = write(sock, line, MAX);
           printf("client: wrote n=%d bytes; line=(%s)\n", n, line);
-
+          
           // Read a line from sock and show it
-          bzero(ans, MAX);
           n = read(sock, ans, MAX);
           printf("client: read  n=%d bytes; echo=(%s)\n",n, ans);
       }
-      
-      if(pathname == 0)
-      	  printf("%s Done\n", cmd); 
       else
-      	  printf("%s %s Done\n", cmd, pathname);
+      {
+      	  printf("invalid comment %s\n", line);
+      }
+      printf("%s Done\n", line); 
+      bzero(line, MAX);
+      bzero(ans, MAX);
+      printf("\n");
     }
 }
