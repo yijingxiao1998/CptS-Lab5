@@ -240,12 +240,22 @@ int main(int argc, char *argv[], char *env[])
           int total = 0;
           struct stat statbuf;
       	  FILE *file;
+		  struct stat statBuf;
+		  char fileSizeMsg[20];
       	  printf("Client put %s\n",pathname);
-
+		  n = write(sock, line, MAX);
       	  file = fopen(pathname, "r"); // a+ means if file exites then open; or make a new file 
       	  if(file)
       	  {
+			printf("Successfully open %s and ready for read:\n", pathname);
+			stat(pathname, &statBuf);
+			int fileSize = statBuf.st_size;
+			printf("Ready to read %d byte from client\n", fileSize);
+			sprintf(fileSizeMsg, "OK %d", fileSize);
+			write(sock, fileSizeMsg, MAX);
+			
       	  	bzero(ans, MAX);
+			n = write(sock, line, MAX);
       	  	while(1)
       	  	{
       	  		n = fread(ans, 1, BLK, file);

@@ -211,7 +211,7 @@ int main()
                sprintf(fileSizeMsg, "OK %d", fileSize);
                write(client_sock, fileSizeMsg, MAX);
                bzero(fileContent, MAX);
-               while(total < fileSize)
+               while(1)
                {
                   n = fread(fileContent, 1, BLK, file);
                   if(n < 0)
