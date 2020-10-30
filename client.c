@@ -75,7 +75,7 @@ int ls_file(char *fname)
 		else
 			printf("%c", t2[i]);  // or print -
 	}
-	printf("%4lud ", sp->st_nlink);  // link count
+	printf("%4lu ", sp->st_nlink);  // link count
 	printf("%4d ", sp->st_gid);    // gid
 	printf("%4d ", sp->st_uid);    // uid
 	printf("%8ld ", sp->st_size);   // file size
