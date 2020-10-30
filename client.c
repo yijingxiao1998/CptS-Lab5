@@ -50,7 +50,7 @@ int init()
     printf("4. connected to server OK\n");
 }
 
-int is_file(char *fname)
+int ls_file(char *fname)
 {
 	struct stat fstat, *sp;
 	int r, i;
@@ -177,14 +177,14 @@ int main(int argc, char *argv[], char *env[])
       	  		strcpy(temp, path);
       	  		strcat(temp, "/");
       	  		strcat(temp, fileinfo->d_name);
-      	  		is_file(temp);
+      	  		ls_file(temp);
       	  	}
       	  	closedir(dir);
       	  	printf("\n");
       	  }
       	  else
       	  {
-      	  	is_file(path);
+      	  	ls_file(path);
       	  }	  	  	
       }
       else if(!strcmp(cmd, "lcat"))
@@ -272,7 +272,8 @@ int main(int argc, char *argv[], char *env[])
           	bzero(ans, MAX);
           	n = read(sock, ans, MAX);
              	printf("%s", ans);
-          	if(!strcmp(ans, "END OF ls \n"))
+          	//if(!strcmp(ans, "END OF ls \n"))
+          	if(strncmp(ans, "END OF ls", 9) == 0)
           		break;
 
           }
