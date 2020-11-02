@@ -197,7 +197,7 @@ int main()
          {
             int total = 0;
             char fileBuf[4096];
-            FILE* file = fopen(pathname, 'r');
+            FILE* file = fopen(pathname, "r");
             struct stat statBuf;
             char fileSizeMsg[20];
 
